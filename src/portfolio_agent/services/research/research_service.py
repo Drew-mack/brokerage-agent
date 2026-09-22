@@ -8,6 +8,7 @@ from portfolio_agent.domain.analytics import analyze_portfolio
 from portfolio_agent.integrations.mailer.ses_sender import SESEmailSender
 from portfolio_agent.services.brief.email_renderer import EmailRenderer
 from portfolio_agent.services.brief.morning_brief import MorningBriefBuilder
+from portfolio_agent.services.brief.session_chart import build_session_chart_svg
 from portfolio_agent.services.research.finnhub_news import (
     FinnhubError,
     FinnhubNewsClient,
@@ -483,10 +484,16 @@ def run_morning_brief(
 
     brief_builder = MorningBriefBuilder()
 
+    session_chart_svg = build_session_chart_svg(
+        analytics=analytics,
+        benchmark_symbol=analytics.benchmark_symbol,
+    )
+
     morning_brief = brief_builder.build(
         analytics=analytics,
         movement_results=(movement_results),
         forward_results=(forward_results),
+        session_chart_svg=session_chart_svg,
     )
 
     email_renderer = EmailRenderer()

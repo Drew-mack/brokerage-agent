@@ -226,6 +226,8 @@ class EmailRenderer:
 
               </div>
 
+              {getattr(brief, "session_chart_svg", None) or ""}
+
             </td>
           </tr>
 

@@ -65,6 +65,7 @@ class MorningBrief:
     input_tokens: int
     output_tokens: int
     estimated_cost: float
+    session_chart_svg: str | None = None
 
 
 class MorningBriefBuilder:
@@ -86,6 +87,7 @@ class MorningBriefBuilder:
         analytics,
         movement_results,
         forward_results,
+        session_chart_svg: str | None = None,
         brief_date: date | None = None,
     ) -> MorningBrief:
         """Build the final editorial content for the morning email."""
@@ -275,6 +277,7 @@ class MorningBriefBuilder:
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             estimated_cost=estimated_cost,
+            session_chart_svg=session_chart_svg,
         )
 
     @staticmethod
