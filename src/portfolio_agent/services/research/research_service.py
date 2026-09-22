@@ -518,7 +518,8 @@ def run_morning_brief(
         )
 
         email_subject = (
-            f"Morning Brief — {morning_brief.date.strftime('%b')} {morning_brief.date.day}"
+            f"Andrew's Morning Portfolio Brief — "
+            f"{morning_brief.date.strftime('%b')} {morning_brief.date.day}"
         )
 
         message_id = email_sender.send(

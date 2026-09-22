@@ -28,6 +28,24 @@ def _html_page(title: str, message: str) -> str:
            f"<body><h1>{html.escape(title)}</h1><p>{html.escape(message)}</p></body></html>"
 
 
+def _send_reauthorization_email(authorization_generation: int) -> None:
+    """Send a fresh one-time authorization link for an expired callback."""
+
+    state = create_state(authorization_generation)
+    authorization_url = build_authorization_url(state=state)
+    sender = SESEmailSender(settings.sender_email, settings.recipient_email, settings.aws_region)
+    sender.send(
+        subject="New Schwab authorization link",
+        text=f"Your previous Schwab link expired. Reauthorize Schwab here: {authorization_url}",
+        html=(
+            "<p>Your previous Schwab authorization link expired.</p>"
+            f'<p><a href="{html.escape(authorization_url)}">Reauthorize Schwab</a></p>'
+            "<p>This link expires in 15 minutes.</p>"
+        ),
+    )
+    mark_reminder_sent(authorization_generation)
+
+
 def callback_handler(event, context):
     """Exchange a validated Schwab OAuth callback for new secret tokens."""
 
@@ -38,14 +56,35 @@ def callback_handler(event, context):
 
     state = params.get("state")
     code = params.get("code")
-    if not code or not consume_state(state):
+    if not code:
         return {
             "statusCode": 400,
             "headers": {"Content-Type": "text/html"},
             "body": _html_page(
-                "Authorization link expired",
-                "Request a new reminder email and try again.",
+                "Schwab authorization was cancelled",
+                "No tokens were changed. Request a new link and try again.",
             ),
+        }
+
+    if not consume_state(state):
+        from portfolio_agent.integrations.schwab_auth import load_tokens
+
+        tokens = load_tokens()
+        created_at = (tokens or {}).get("refresh_token_created_at")
+        authorization_generation = int(created_at or time.time())
+        try:
+            if not reminder_was_sent(authorization_generation):
+                _send_reauthorization_email(authorization_generation)
+                message = "That link expired. A fresh link was sent to your email."
+            else:
+                message = "That link expired. Check your email for the most recent fresh link."
+        except Exception:
+            logger.exception("Could not send replacement Schwab OAuth link")
+            message = "That link expired. Request a new reminder email and try again."
+        return {
+            "statusCode": 400,
+            "headers": {"Content-Type": "text/html"},
+            "body": _html_page("Authorization link expired", message),
         }
 
     try:
@@ -99,19 +138,7 @@ def reminder_handler(event, context):
     if reminder_was_sent(authorization_generation):
         return {"status": "already_sent"}
 
-    state = create_state(authorization_generation)
-    authorization_url = build_authorization_url(state=state)
-    sender = SESEmailSender(settings.sender_email, settings.recipient_email, settings.aws_region)
-    sender.send(
-        subject="Schwab authorization expires soon",
-        text=f"Reauthorize Schwab here: {authorization_url}",
-        html=(
-            "<p>Your Schwab authorization expires soon.</p>"
-            f'<p><a href="{html.escape(authorization_url)}">Reauthorize Schwab</a></p>'
-            "<p>This link expires in 15 minutes.</p>"
-        ),
-    )
-    mark_reminder_sent(authorization_generation)
+    _send_reauthorization_email(authorization_generation)
     return {"status": "sent"}
 
 

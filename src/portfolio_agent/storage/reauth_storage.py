@@ -71,12 +71,22 @@ def consume_state(state: str) -> bool:
 
 
 def reminder_was_sent(refresh_token_created_at: int) -> bool:
-    """Return whether a reminder was already sent for this authorization."""
+    """Return whether an active link was recently sent for this authorization.
+
+    DynamoDB TTL cleanup is asynchronous, so the marker must be checked by
+    timestamp as well. Once the 15-minute OAuth state expires, the next
+    scheduled run may issue a replacement link even if the old marker still
+    exists in the table.
+    """
 
     item = _table().get_item(Key={"key": REMINDER_KEY}).get("Item")
-    return bool(
-        item
-        and int(item.get("refresh_token_created_at", 0)) == int(refresh_token_created_at)
+    if not item:
+        return False
+
+    sent_at = int(item.get("sent_at", 0))
+    return (
+        int(item.get("refresh_token_created_at", 0)) == int(refresh_token_created_at)
+        and sent_at + STATE_TTL_SECONDS > int(time.time())
     )
 
 

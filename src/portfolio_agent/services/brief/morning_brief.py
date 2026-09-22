@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from portfolio_agent.config import settings
+from portfolio_agent.services.research.finnhub_news import NewsArticle
 
 load_dotenv()
 
@@ -29,6 +30,7 @@ class BriefChange:
     dollar_impact: float
     explanation: str
     thesis_implication: str
+    supporting_articles: list[NewsArticle] = field(default_factory=list)
 
 
 @dataclass
@@ -38,6 +40,7 @@ class BriefAdvice:
     outlook: str
     advice: str
     watch_items: list[str] = field(default_factory=list)
+    supporting_articles: list[NewsArticle] = field(default_factory=list)
 
 
 @dataclass
@@ -393,6 +396,7 @@ class MorningBriefBuilder:
                     dollar_impact=(result.dollar_change),
                     explanation=(item["explanation"]),
                     thesis_implication=(item["thesis_implication"]),
+                    supporting_articles=result.supporting_articles,
                 )
             )
 
@@ -424,6 +428,7 @@ class MorningBriefBuilder:
                     outlook=(result.analysis.outlook),
                     advice=(item["advice"]),
                     watch_items=(item["watch_items"]),
+                    supporting_articles=result.supporting_articles,
                 )
             )
 

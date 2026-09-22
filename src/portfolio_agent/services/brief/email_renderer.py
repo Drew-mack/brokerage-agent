@@ -1,24 +1,25 @@
 from html import escape
 from pathlib import Path
 
-PAGE_BACKGROUND = "#f7f6f3"
-CONTENT_BACKGROUND = "#fffefc"
-TEXT_PRIMARY = "#37352f"
-TEXT_SECONDARY = "#787774"
-TEXT_MUTED = "#9b9a97"
-SOFT_BACKGROUND = "#f7f6f3"
-SOFT_BACKGROUND_HOVER = "#efefed"
-BORDER = "#e9e9e7"
+PAGE_BACKGROUND = "#1a1b26"
+CONTENT_BACKGROUND = "#24283b"
+TEXT_PRIMARY = "#c0caf5"
+TEXT_SECONDARY = "#a9b1d6"
+TEXT_MUTED = "#7982a9"
+SOFT_BACKGROUND = "#1f2335"
+SOFT_BACKGROUND_HOVER = "#292e42"
+BORDER = "#414868"
 
-POSITIVE = "#448361"
-NEGATIVE = "#c4554d"
-NEUTRAL = "#787774"
+POSITIVE = "#9ece6a"
+NEGATIVE = "#f7768e"
+NEUTRAL = "#7aa2f7"
+LINK = "#7dcfff"
 
 FONT_STACK = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 
 
 class EmailRenderer:
-    """Renders a MorningBrief as a warm, document-style HTML email."""
+    """Render a MorningBrief as a Tokyo Night themed HTML email."""
 
     def render(self, brief) -> str:
         """Render the complete morning brief."""
@@ -47,7 +48,7 @@ class EmailRenderer:
     name="viewport"
     content="width=device-width, initial-scale=1"
   >
-  <title>Morning Portfolio Brief</title>
+  <title>Andrew's Morning Portfolio Brief</title>
 </head>
 
 <body
@@ -112,7 +113,7 @@ class EmailRenderer:
                   color:{TEXT_PRIMARY};
                 "
               >
-                Morning Portfolio Brief
+                Andrew's Morning Portfolio Brief
               </div>
 
               <div
@@ -423,6 +424,8 @@ class EmailRenderer:
               {escape(change.thesis_implication)}
             </div>
 
+            {self._render_sources(change.supporting_articles)}
+
           </div>
         """
 
@@ -533,6 +536,8 @@ class EmailRenderer:
               {escape(item.advice)}
             </div>
 
+            {self._render_sources(item.supporting_articles)}
+
             {self._watching_html(watches)}
 
           </div>
@@ -556,6 +561,47 @@ class EmailRenderer:
           >
             {escape(title)}
           </div>
+        """
+
+    @staticmethod
+    def _render_sources(articles) -> str:
+        """Render selected research articles as compact, safe links."""
+
+        links = []
+        for article in articles:
+            url = (article.url or "").strip()
+            if not url.lower().startswith(("https://", "http://")):
+                continue
+
+            headline = escape(article.headline.strip() or "Read article")
+            source = escape(article.source.strip())
+            label = headline
+            if source:
+                label = (
+                    f'{headline} <span style="color:{TEXT_MUTED};">'
+                    f"· {source}</span>"
+                )
+            links.append(
+                f'<a href="{escape(url, quote=True)}" '
+                f'style="color:{LINK};text-decoration:none;">{label}</a>'
+            )
+
+        if not links:
+            return ""
+
+        return f"""
+          <div style="margin-top:16px;font-size:11px;font-weight:600;color:{TEXT_SECONDARY};">
+            Sources
+          </div>
+          <ul style="
+            margin:5px 0 0;
+            padding-left:17px;
+            font-size:12px;
+            line-height:1.6;
+            color:{TEXT_SECONDARY};
+          ">
+            {''.join(f'<li style="margin:3px 0;">{link}</li>' for link in links)}
+          </ul>
         """
 
     @staticmethod
