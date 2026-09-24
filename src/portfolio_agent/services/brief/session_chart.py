@@ -3,9 +3,13 @@
 from dataclasses import dataclass
 from datetime import datetime, time, timezone
 from html import escape
+import logging
 from zoneinfo import ZoneInfo
 
 from portfolio_agent.integrations.schwab import SchwabClient
+
+
+logger = logging.getLogger(__name__)
 
 
 MARKET_TIMEZONE = ZoneInfo("America/New_York")
@@ -101,8 +105,8 @@ def build_session_chart_svg(analytics, benchmark_symbol, client=None):
 
     histories = {}
 
-    try:
-        for symbol in [*symbols, benchmark_symbol]:
+    for symbol in [*symbols, benchmark_symbol]:
+        try:
             histories[symbol] = client.get_price_history(
                 symbol=symbol,
                 frequency_type="minute",
@@ -112,8 +116,17 @@ def build_session_chart_svg(analytics, benchmark_symbol, client=None):
                 need_extended_hours_data=False,
                 need_previous_close=True,
             )
-    except Exception:
-        return None
+        except Exception:
+            if symbol == benchmark_symbol:
+                logger.exception("Unable to load benchmark intraday history", extra={"symbol": symbol})
+                return None
+
+            logger.warning(
+                "Unable to load position intraday history; holding it flat in chart",
+                extra={"symbol": symbol},
+                exc_info=True,
+            )
+            histories[symbol] = {"candles": []}
 
     candle_maps = {
         symbol: _candles_by_timestamp(history)
@@ -130,6 +143,10 @@ def build_session_chart_svg(analytics, benchmark_symbol, client=None):
         None,
     )
 
+    benchmark_previous_close = benchmark_previous_close or histories[benchmark_symbol].get(
+        "previousClose"
+    )
+
     if benchmark_previous_close is None:
         try:
             benchmark_history = client.get_daily_price_history(benchmark_symbol, period=1)
@@ -139,6 +156,10 @@ def build_session_chart_svg(analytics, benchmark_symbol, client=None):
             )
             benchmark_previous_close = float(daily_candles[-2]["close"])
         except Exception:
+            logger.exception(
+                "Unable to determine benchmark prior close",
+                extra={"symbol": benchmark_symbol},
+            )
             return None
 
     portfolio_previous_value = analytics.estimated_previous_value
@@ -172,6 +193,12 @@ def build_session_chart_svg(analytics, benchmark_symbol, client=None):
             price = _value_at_or_before(candle_maps.get(position.symbol, {}), timestamp)
 
             if price is None:
+                price = position.previous_close
+
+            if price is None and position.previous_quantity:
+                price = position.previous_value / position.previous_quantity
+
+            if price is None:
                 complete = False
                 break
 
@@ -187,6 +214,14 @@ def build_session_chart_svg(analytics, benchmark_symbol, client=None):
             )
 
     if len(points) < 2:
+        logger.warning(
+            "Not enough market data to render session chart",
+            extra={
+                "benchmark_symbol": benchmark_symbol,
+                "benchmark_candle_count": len(benchmark_candles),
+                "point_count": len(points),
+            },
+        )
         return None
 
     values = [
