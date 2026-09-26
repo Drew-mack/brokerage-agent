@@ -44,20 +44,31 @@ class EmailRenderer:
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1"
   >
+  <style>
+    :root {{
+      color-scheme: dark;
+      supported-color-schemes: dark;
+    }}
+  </style>
   <title>Andrew's Morning Portfolio Brief</title>
 </head>
 
 <body
+  bgcolor="{PAGE_BACKGROUND}"
   style="
     margin:0;
     padding:0;
     background:{PAGE_BACKGROUND};
+    background-color:{PAGE_BACKGROUND};
     font-family:{FONT_STACK};
     color:{TEXT_PRIMARY};
+    color-scheme:dark;
     -webkit-font-smoothing:antialiased;
   "
 >
@@ -67,9 +78,11 @@ class EmailRenderer:
     cellspacing="0"
     cellpadding="0"
     border="0"
+    bgcolor="{PAGE_BACKGROUND}"
     style="
       width:100%;
       background:{PAGE_BACKGROUND};
+      background-color:{PAGE_BACKGROUND};
     "
   >
     <tr>
@@ -86,10 +99,12 @@ class EmailRenderer:
           cellspacing="0"
           cellpadding="0"
           border="0"
+          bgcolor="{CONTENT_BACKGROUND}"
           style="
             width:100%;
             max-width:680px;
             background:{CONTENT_BACKGROUND};
+            background-color:{CONTENT_BACKGROUND};
             border-radius:12px;
           "
         >

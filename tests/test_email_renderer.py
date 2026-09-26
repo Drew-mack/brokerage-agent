@@ -31,6 +31,10 @@ def test_renderer_includes_tokyo_night_chart_and_changes_section():
     html = EmailRenderer().render(brief)
 
     assert 'background:#1a1b26' in html
+    assert '<meta name="color-scheme" content="dark">' in html
+    assert '<meta name="supported-color-schemes" content="dark">' in html
+    assert 'bgcolor="#1a1b26"' in html
+    assert 'bgcolor="#24283b"' in html
     assert "Tokyo Night" not in html
     assert "Changes" in html
     assert 'aria-label="session chart"' in html
