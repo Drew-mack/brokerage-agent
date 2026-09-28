@@ -89,6 +89,9 @@ def build_session_chart_svg(analytics, benchmark_symbol, client=None):
     trades or transfers with investment performance.
     """
 
+    if getattr(analytics, "missing_price_symbols", []):
+        return None
+
     client = client or SchwabClient()
     symbols = [
         position.symbol

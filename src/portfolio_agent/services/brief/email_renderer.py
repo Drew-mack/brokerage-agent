@@ -21,6 +21,17 @@ FONT_STACK = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, s
 class EmailRenderer:
     """Render a MorningBrief as a Tokyo Night themed HTML email."""
 
+    @staticmethod
+    def _missing_prices_note(brief):
+        symbols = getattr(brief, "missing_price_symbols", [])
+        if not symbols:
+            return ""
+        return (
+            f'<p style="color:{TEXT_MUTED};font-size:13px;">'
+            f'Session performance unavailable: missing prices for {escape(", ".join(symbols))}. '
+            'The portfolio value above includes all Schwab accounts and holdings.</p>'
+        )
+
     def render(self, brief) -> str:
         """Render the complete morning brief."""
 
@@ -188,7 +199,7 @@ class EmailRenderer:
                   color:{TEXT_SECONDARY};
                 "
               >
-                Portfolio value
+                Portfolio value · latest Schwab balances
               </div>
 
               <div
@@ -216,7 +227,7 @@ class EmailRenderer:
                 self._money_percent(
                     brief.dollar_change,
                     brief.portfolio_return,
-                ),
+                ) if not getattr(brief, "missing_price_symbols", []) else "Unavailable",
                 brief.portfolio_return,
             )
         }
@@ -232,7 +243,8 @@ class EmailRenderer:
                   {
             self._metric_row(
                 (f"vs. {brief.benchmark_symbol}"),
-                (f"{brief.relative_return:+.2%}"),
+                (f"{brief.relative_return:+.2%}")
+                if not getattr(brief, "missing_price_symbols", []) else "Unavailable",
                 brief.relative_return,
             )
         }
@@ -241,6 +253,7 @@ class EmailRenderer:
 
               </div>
 
+              {self._missing_prices_note(brief)}
               {getattr(brief, "session_chart_svg", None) or ""}
 
             </td>

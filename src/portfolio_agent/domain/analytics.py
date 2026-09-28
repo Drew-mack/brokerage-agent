@@ -82,6 +82,7 @@ class PortfolioAnalytics:
     contributors: list[PositionPerformance] = field(default_factory=list)
     detractors: list[PositionPerformance] = field(default_factory=list)
     positions: list[PositionPerformance] = field(default_factory=list)
+    missing_price_symbols: list[str] = field(default_factory=list)
 
 
 def aggregate_positions(portfolio):
@@ -459,8 +460,8 @@ def analyze_portfolio(
     Generate analytics for the latest completed regular market session.
 
     The benchmark defines the two market dates used throughout the run.
-    Historical closing prices are used for portfolio valuation so
-    after-hours price changes cannot alter a completed-session report.
+    Account value comes directly from Schwab balances. Historical closing
+    prices are used only for completed-session performance calculations.
     """
 
     client = SchwabClient()
@@ -525,6 +526,7 @@ def analyze_portfolio(
     )
 
     position_results = []
+    missing_price_symbols = []
 
     for position in current_positions:
         symbol = position.symbol
@@ -551,6 +553,7 @@ def analyze_portfolio(
             position_results.append(result)
 
         except Exception as error:
+            missing_price_symbols.append(symbol)
             print(f"WARNING: Could not analyze {symbol}: {error}")
 
     previous_invested_value = sum(position.previous_value for position in position_results)
@@ -623,7 +626,7 @@ def analyze_portfolio(
     analytics = PortfolioAnalytics(
         previous_session_date=(previous_session_date),
         session_date=(session_date),
-        portfolio_value=(session_portfolio_value),
+        portfolio_value=portfolio.total_value,
         cash=session_cash,
         estimated_previous_value=(previous_portfolio_value),
         dollar_change=(investment_change),
@@ -647,6 +650,7 @@ def analyze_portfolio(
         contributors=contributors,
         detractors=detractors,
         positions=position_results,
+        missing_price_symbols=missing_price_symbols,
     )
 
     return (

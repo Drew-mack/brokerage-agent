@@ -66,6 +66,7 @@ class MorningBrief:
     output_tokens: int
     estimated_cost: float
     session_chart_svg: str | None = None
+    missing_price_symbols: list[str] = field(default_factory=list)
 
 
 class MorningBriefBuilder:
@@ -278,6 +279,7 @@ class MorningBriefBuilder:
             output_tokens=output_tokens,
             estimated_cost=estimated_cost,
             session_chart_svg=session_chart_svg,
+            missing_price_symbols=list(getattr(analytics, "missing_price_symbols", [])),
         )
 
     @staticmethod
